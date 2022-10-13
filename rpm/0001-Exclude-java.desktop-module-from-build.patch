@@ -1,0 +1,220 @@
+From ab3b20ac8a522f8196c2845e29b532730c0d5028 Mon Sep 17 00:00:00 2001
+From: Dmitry Gerasimov <di.gerasimov@gmail.com>
+Date: Tue, 25 Oct 2022 10:00:44 +0000
+Subject: [PATCH] Exclude java.desktop module from build
+
+Exclude java.desktop and some dependent modules from the build.
+java.desktop heavily relies on X11, ALSA, and CUPS. Demos and some build
+tools are excluded from the build as well because they depend on awt
+from java.desktop module.
+---
+ make/CompileToolsJdk.gmk                              | 11 ++++-------
+ make/Main.gmk                                         |  2 +-
+ make/autoconf/libraries.m4                            |  6 ------
+ make/common/Modules.gmk                               |  8 ++++++++
+ make/conf/docs-modules.conf                           |  4 ----
+ make/conf/module-loader-map.conf                      |  2 --
+ src/java.se/share/classes/module-info.java            |  1 -
+ .../jdk/jpackage/internal/DesktopIntegration.java     |  8 --------
+ src/jdk.jpackage/share/classes/module-info.java       |  2 +-
+ 9 files changed, 14 insertions(+), 30 deletions(-)
+
+diff --git a/make/CompileToolsJdk.gmk b/make/CompileToolsJdk.gmk
+index 2f09476aa67..e0903a8e8ae 100644
+--- a/make/CompileToolsJdk.gmk
++++ b/make/CompileToolsJdk.gmk
+@@ -51,6 +51,10 @@ $(eval $(call SetupJavaCompilation, BUILD_TOOLS_JDK, \
+         build/tools/docs \
+         build/tools/jigsaw \
+         build/tools/depend \
++        build/tools/compilefontconfig \
++        build/tools/dtdbuilder \
++        build/tools/generatenimbus \
++        build/tools/icondata \
+         , \
+     BIN := $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes, \
+     DISABLED_WARNINGS := options, \
+@@ -62,13 +66,6 @@ $(eval $(call SetupJavaCompilation, BUILD_TOOLS_JDK, \
+ 
+ TARGETS += $(BUILD_TOOLS_JDK)
+ 
+-$(eval $(call SetupCopyFiles,COPY_NIMBUS_TEMPLATES, \
+-    SRC := $(TOPDIR)/src/java.desktop/share/classes/javax/swing/plaf/nimbus, \
+-    DEST := $(BUILDTOOLS_OUTPUTDIR)/jdk_tools_classes/build/tools/generatenimbus/resources, \
+-    FILES := $(wildcard $(TOPDIR)/src/java.desktop/share/classes/javax/swing/plaf/nimbus/*.template)))
+-
+-TARGETS += $(COPY_NIMBUS_TEMPLATES)
+-
+ ################################################################################
+ 
+ $(eval $(call SetupJavaCompilation, COMPILE_DEPEND, \
+diff --git a/make/Main.gmk b/make/Main.gmk
+index b1df835746b..5a4ccd23dbe 100644
+--- a/make/Main.gmk
++++ b/make/Main.gmk
+@@ -399,7 +399,7 @@ $(eval $(call SetupTarget, jrtfs-jar, \
+ $(eval $(call SetupTarget, jdk-image, \
+     MAKEFILE := Images, \
+     TARGET := jdk, \
+-    DEPS := jmods zip-source demos release-file, \
++    DEPS := jmods zip-source release-file, \
+ ))
+ 
+ $(eval $(call SetupTarget, legacy-jre-image, \
+diff --git a/make/autoconf/libraries.m4 b/make/autoconf/libraries.m4
+index a65d91ee974..08b85567079 100644
+--- a/make/autoconf/libraries.m4
++++ b/make/autoconf/libraries.m4
+@@ -24,13 +24,10 @@
+ #
+ 
+ # Major library component reside in separate files.
+-m4_include([lib-alsa.m4])
+ m4_include([lib-bundled.m4])
+-m4_include([lib-cups.m4])
+ m4_include([lib-ffi.m4])
+ m4_include([lib-freetype.m4])
+ m4_include([lib-std.m4])
+-m4_include([lib-x11.m4])
+ m4_include([lib-fontconfig.m4])
+ m4_include([lib-tests.m4])
+ 
+@@ -95,11 +92,8 @@ AC_DEFUN_ONCE([LIB_DETERMINE_DEPENDENCIES],
+ AC_DEFUN_ONCE([LIB_SETUP_LIBRARIES],
+ [
+   LIB_SETUP_STD_LIBS
+-  LIB_SETUP_X11
+-  LIB_SETUP_CUPS
+   LIB_SETUP_FONTCONFIG
+   LIB_SETUP_FREETYPE
+-  LIB_SETUP_ALSA
+   LIB_SETUP_LIBFFI
+   LIB_SETUP_BUNDLED_LIBS
+   LIB_SETUP_MISC_LIBS
+diff --git a/make/common/Modules.gmk b/make/common/Modules.gmk
+index 0eb0fb2ddc1..81f01c1d479 100644
+--- a/make/common/Modules.gmk
++++ b/make/common/Modules.gmk
+@@ -71,6 +71,14 @@ ifeq ($(call isTargetOs, windows macosx linux), false)
+   MODULES_FILTER += jdk.jpackage
+ endif
+ 
++MODULES_FILTER += java.desktop
++MODULES_FILTER += jdk.unsupported.desktop
++MODULES_FILTER += jdk.accessibility
++MODULES_FILTER += jdk.editpad
++MODULES_FILTER += jdk.jconsole
++# FIXME: find out how to remove swing from the hotspot agent
++MODULES_FILTER += jdk.hotspot.agent
++
+ ################################################################################
+ # Module list macros
+ 
+diff --git a/make/conf/docs-modules.conf b/make/conf/docs-modules.conf
+index 5d0c696c75b..75e8562d4cf 100644
+--- a/make/conf/docs-modules.conf
++++ b/make/conf/docs-modules.conf
+@@ -31,22 +31,18 @@
+ DOCS_MODULES= \
+     java.se \
+     java.smartcardio \
+-    jdk.accessibility \
+     jdk.attach \
+     jdk.charsets \
+     jdk.compiler \
+     jdk.crypto.cryptoki \
+     jdk.crypto.ec \
+     jdk.dynalink \
+-    jdk.editpad \
+-    jdk.hotspot.agent \
+     jdk.httpserver \
+     jdk.jpackage \
+     jdk.incubator.vector \
+     jdk.jartool \
+     jdk.javadoc \
+     jdk.jcmd \
+-    jdk.jconsole \
+     jdk.jdeps \
+     jdk.jdi \
+     jdk.jdwp.agent \
+diff --git a/make/conf/module-loader-map.conf b/make/conf/module-loader-map.conf
+index c86ebf954c0..234f353ae83 100644
+--- a/make/conf/module-loader-map.conf
++++ b/make/conf/module-loader-map.conf
+@@ -33,7 +33,6 @@
+ BOOT_MODULES= \
+     java.base \
+     java.datatransfer \
+-    java.desktop \
+     java.instrument \
+     java.logging \
+     java.management \
+@@ -75,7 +74,6 @@ PLATFORM_MODULES= \
+     java.sql.rowset \
+     java.transaction.xa \
+     java.xml.crypto \
+-    jdk.accessibility \
+     jdk.charsets \
+     jdk.crypto.cryptoki \
+     jdk.crypto.ec \
+diff --git a/src/java.se/share/classes/module-info.java b/src/java.se/share/classes/module-info.java
+index 81b1bd3cb8a..f53136b0c20 100644
+--- a/src/java.se/share/classes/module-info.java
++++ b/src/java.se/share/classes/module-info.java
+@@ -41,7 +41,6 @@
+ module java.se {
+     requires transitive java.compiler;
+     requires transitive java.datatransfer;
+-    requires transitive java.desktop;
+     requires transitive java.instrument;
+     requires transitive java.logging;
+     requires transitive java.management;
+diff --git a/src/jdk.jpackage/linux/classes/jdk/jpackage/internal/DesktopIntegration.java b/src/jdk.jpackage/linux/classes/jdk/jpackage/internal/DesktopIntegration.java
+index 29d3b7bcf21..917c2e964ea 100644
+--- a/src/jdk.jpackage/linux/classes/jdk/jpackage/internal/DesktopIntegration.java
++++ b/src/jdk.jpackage/linux/classes/jdk/jpackage/internal/DesktopIntegration.java
+@@ -24,7 +24,6 @@
+  */
+ package jdk.jpackage.internal;
+ 
+-import java.awt.image.BufferedImage;
+ import java.io.BufferedReader;
+ import java.io.File;
+ import java.io.IOException;
+@@ -43,7 +42,6 @@ import java.util.Set;
+ import java.util.regex.Pattern;
+ import java.util.stream.Collectors;
+ import java.util.stream.Stream;
+-import javax.imageio.ImageIO;
+ import javax.xml.stream.XMLStreamException;
+ import javax.xml.stream.XMLStreamWriter;
+ import jdk.jpackage.internal.Arguments.CLIOptions;
+@@ -484,12 +482,6 @@ final class DesktopIntegration {
+     }
+ 
+     private static int getSquareSizeOfImage(File f) {
+-        try {
+-            BufferedImage bi = ImageIO.read(f);
+-            return Math.max(bi.getWidth(), bi.getHeight());
+-        } catch (IOException e) {
+-            Log.verbose(e);
+-        }
+         return 0;
+     }
+ 
+diff --git a/src/jdk.jpackage/share/classes/module-info.java b/src/jdk.jpackage/share/classes/module-info.java
+index 475daa0bd56..be8d8cace56 100644
+--- a/src/jdk.jpackage/share/classes/module-info.java
++++ b/src/jdk.jpackage/share/classes/module-info.java
+@@ -49,7 +49,7 @@
+ module jdk.jpackage {
+     requires jdk.jlink;
+ 
+-    requires java.desktop;
++    requires java.xml;
+ 
+     uses jdk.jpackage.internal.Bundler;
+     uses jdk.jpackage.internal.Bundlers;
+-- 
+2.37.3
+

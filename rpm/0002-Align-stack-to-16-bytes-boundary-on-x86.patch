@@ -1,0 +1,45 @@
+From 98a4e0de3251ed1bdc2e67e2ac554255b340fdb4 Mon Sep 17 00:00:00 2001
+From: Dmitry Gerasimov <di.gerasimov@gmail.com>
+Date: Tue, 25 Oct 2022 10:13:38 +0000
+Subject: [PATCH] Align stack to 16 bytes boundary on x86
+
+Prevent hotspot from failing on x86 SSE instructions because of
+unaligned stack. See https://bugs.gentoo.org/647954 for details.
+---
+ make/autoconf/flags.m4 | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/make/autoconf/flags.m4 b/make/autoconf/flags.m4
+index 2171ca10ba2..dd80fd6108a 100644
+--- a/make/autoconf/flags.m4
++++ b/make/autoconf/flags.m4
+@@ -273,6 +273,17 @@ AC_DEFUN_ONCE([FLAGS_PRE_TOOLCHAIN],
+     fi
+   fi
+ 
++  if test "x$OPENJDK_TARGET_CPU" = xx86 && test "x$OPENJDK_TARGET_OS" = xlinux; then
++    # 32-bit Linux systems which use libraries compiled with SSE instructions requires
++    # C-entry points to be 16 byte aligned.
++    REALIGN_CFLAGS="-mincoming-stack-boundary=2 -mpreferred-stack-boundary=4"
++    FLAGS_COMPILER_CHECK_ARGUMENTS(ARGUMENT: [${REALIGN_CFLAGS} -Werror],
++      IF_FALSE: [
++        AC_MSG_ERROR([The selected compiler $CXX does not support -mstackrealign! Try to put another compiler in the path.])
++      ]
++    )
++  fi
++
+   # FIXME: global flags are not used yet...
+   # The "global" flags will *always* be set. Without them, it is not possible to
+   # get a working compilation.
+@@ -283,7 +294,7 @@ AC_DEFUN_ONCE([FLAGS_PRE_TOOLCHAIN],
+   GLOBAL_CPPFLAGS="$SYSROOT_CFLAGS"
+ 
+   # FIXME: For compatilibity, export this as EXTRA_CFLAGS for now.
+-  EXTRA_CFLAGS="$MACHINE_FLAG $USER_CFLAGS"
++  EXTRA_CFLAGS="$MACHINE_FLAG $USER_CFLAGS $REALIGN_CFLAGS"
+   EXTRA_CXXFLAGS="$MACHINE_FLAG $USER_CXXFLAGS"
+   EXTRA_LDFLAGS="$MACHINE_FLAG $USER_LDFLAGS"
+   EXTRA_ASFLAGS="$USER_ASFLAGS"
+-- 
+2.37.3
+
