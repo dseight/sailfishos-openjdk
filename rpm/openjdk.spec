@@ -45,6 +45,7 @@ URL: http://openjdk.java.net/
 Source0: %{name}-%{version}.tar.zst
 Patch1: 0001-Exclude-java.desktop-module-from-build.patch
 Patch2: 0002-Align-stack-to-16-bytes-boundary-on-x86.patch
+Patch3: 0003-Build-java.beans-as-a-separate-module.patch
 BuildRequires: autoconf
 BuildRequires: bash
 BuildRequires: zip
