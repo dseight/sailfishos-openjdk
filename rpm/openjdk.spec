@@ -16,7 +16,7 @@
 # It is not possible to use __requires_exclude_from here, as automatic requires
 # for these libraries will not be generated at all (e.g. there will be no
 # dependency on libz.so.1).
-%global _jdklibs libattach[.]so.*|libawt_headless[.]so.*|libdt_socket[.]so.*|libextnet[.]so.*|libfontmanager[.]so.*|libinstrument[.]so.*|libj2gss[.]so.*|libj2pcsc[.]so.*|libj2pkcs11[.]so.*|libjaas[.]so.*|libjava[.]so.*|libjavajpeg[.]so.*|libjdwp[.]so.*|libjimage[.]so.*|libjli[.]so.*|libjsig[.]so.*|libjvm[.]so.*|liblcms[.]so.*|libmanagement_agent[.]so.*|libmanagement_ext[.]so.*|libmanagement[.]so.*|libmlib_image[.]so.*|libnet[.]so.*|libnio[.]so.*|libprefs[.]so.*|librmi[.]so.*|libsaproc[.]so.*|libsctp[.]so.*|libsyslookup[.]so.*|libsystemconf[.]so.*|libverify[.]so.*|libzip[.]so.*
+%global _jdklibs libattach[.]so.*|libawt[.]so.*|libawt_headless[.]so.*|libdt_socket[.]so.*|libextnet[.]so.*|libfontmanager[.]so.*|libinstrument[.]so.*|libj2gss[.]so.*|libj2pcsc[.]so.*|libj2pkcs11[.]so.*|libjaas[.]so.*|libjava[.]so.*|libjavajpeg[.]so.*|libjdwp[.]so.*|libjimage[.]so.*|libjli[.]so.*|libjsig[.]so.*|libjvm[.]so.*|liblcms[.]so.*|libmanagement_agent[.]so.*|libmanagement_ext[.]so.*|libmanagement[.]so.*|libmlib_image[.]so.*|libnet[.]so.*|libnio[.]so.*|libprefs[.]so.*|librmi[.]so.*|libsaproc[.]so.*|libsctp[.]so.*|libsyslookup[.]so.*|libsystemconf[.]so.*|libverify[.]so.*|libzip[.]so.*
 %global __provides_exclude ^(%{_jdklibs})$
 %global __requires_exclude ^(%{_jdklibs})$
 
@@ -43,14 +43,15 @@ License: ASL 1.1 and ASL 2.0 and BSD and BSD with advertising and GPL+ and GPLv2
 
 URL: http://openjdk.java.net/
 Source0: %{name}-%{version}.tar.zst
-Patch1: 0001-Exclude-java.desktop-module-from-build.patch
+Patch1: 0001-Build-without-ALSA-and-CUPS.patch
 Patch2: 0002-Align-stack-to-16-bytes-boundary-on-x86.patch
-Patch3: 0003-Build-java.beans-as-a-separate-module.patch
 BuildRequires: autoconf
 BuildRequires: bash
 BuildRequires: zip
 BuildRequires: java-%{bootjdkver}-openjdk-devel
 BuildRequires: pkgconfig(zlib)
+BuildRequires: pkgconfig(x11)
+BuildRequires: pkgconfig(xrender)
 
 %description
 %{summary}.
@@ -145,10 +146,12 @@ install -D -m 0644 "${IMAGEDIR}/release" "${DESTDIR}/release"
 %{_jvmdir}/%{name}/bin/javadoc
 %{_jvmdir}/%{name}/bin/javap
 %{_jvmdir}/%{name}/bin/jcmd
+%{_jvmdir}/%{name}/bin/jconsole
 %{_jvmdir}/%{name}/bin/jdb
 %{_jvmdir}/%{name}/bin/jdeprscan
 %{_jvmdir}/%{name}/bin/jdeps
 %{_jvmdir}/%{name}/bin/jfr
+%{_jvmdir}/%{name}/bin/jhsdb
 %{_jvmdir}/%{name}/bin/jimage
 %{_jvmdir}/%{name}/bin/jinfo
 %{_jvmdir}/%{name}/bin/jlink
